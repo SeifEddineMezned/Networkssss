@@ -67,10 +67,11 @@ class Bot {
   }
   // Simulate the PvP client state stream: [id, playing, walking, x, y, angle, seq, sentTs]
   startStreaming(slot, hz = 30) {
-    let seq = 0, x = 2 + slot, y = 2, a = 0;
+    const s = this._stream = this._stream || { seq: 0, x: 2 + slot, y: 2, a: 0 };   // continues across pauses
+    clearInterval(this.streamTimer);
     this.streamTimer = setInterval(() => {
-      seq++; a += 0.1; x += Math.cos(a) * 0.05; y += Math.sin(a) * 0.05;
-      this.send(C.BROADCAST, [[{ id: slot, data: [slot, true, true, +x.toFixed(2), +y.toFixed(2), +a.toFixed(3), seq, Date.now()] }], []], false);
+      s.seq++; s.a += 0.1; s.x += Math.cos(s.a) * 0.05; s.y += Math.sin(s.a) * 0.05;
+      this.send(C.BROADCAST, [[{ id: slot, data: [slot, true, true, +s.x.toFixed(2), +s.y.toFixed(2), +s.a.toFixed(3), s.seq, Date.now()] }], []], false);
     }, Math.round(1000 / hz));
   }
   stopStreaming() { clearInterval(this.streamTimer); }

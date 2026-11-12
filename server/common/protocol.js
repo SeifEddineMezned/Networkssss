@@ -28,7 +28,7 @@ const isStr = (v, min, max) => typeof v === 'string' && v.length >= min && v.len
 const CLIENT_MSG = {
   [C.HELLO]: () => true,
   [C.REGISTER]: d => d && isStr(d.user, 3, 10) && /^[A-Za-z0-9]+$/.test(d.user) && isStr(d.pass, 3, 64),
-  [C.LOGIN]: d => d && isStr(d.user, 3, 10) && isStr(d.pass, 1, 64),
+  [C.LOGIN]: d => d && isStr(d.user, 3, 10) && isStr(d.pass, 1, 64) && (d.resume === undefined || isStr(d.resume, 1, 64)),
   [C.LOGOUT]: () => true,
   [C.ROOM_LIST_REQ]: () => true,
   [C.CREATE_ROOM]: d => d && isStr(d.name, 3, 8) && /^[A-Za-z0-9]+$/.test(d.name),

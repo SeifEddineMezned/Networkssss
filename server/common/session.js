@@ -148,17 +148,23 @@ class Session {
     const key = acc.user.toLowerCase();
     const existing = this.byUser.get(key);
     if (existing && existing !== peer) {
-      // One active session per user: the newest login wins (this is also how a reconnecting
-      // client takes over its old, possibly half-open, session).
-      this.log(`login     ${acc.user} replaces an older session ${existing.id}`);
-      this.send(existing, C.ERROR, { code: 'replaced', msg: 'Logged in from another place' });
+      // One active session per user. A second login is REJECTED, unless it presents the private
+      // resume token of the existing session: that is the same player's bridge reconnecting
+      // (e.g. Wi-Fi came back before the server noticed the old session was dead).
+      if (!(typeof d.resume === 'string' && existing.resume && d.resume === existing.resume)) {
+        this.log(`login REJECTED ${acc.user}: already logged in from ${existing.addr}`);
+        return this.send(peer, C.AUTH_FAIL, { msg: 'User already logged in elsewhere', code: 'alreadyLoggedIn' });
+      }
+      this.log(`login     ${acc.user} resumes its session (old transport ${existing.id} replaced)`);
+      this.send(existing, C.ERROR, { code: 'replaced', msg: 'Session resumed from a new connection' });
       this.drop(existing, 'replaced');
     }
     if (peer.user && peer.user.toLowerCase() !== key) this.byUser.delete(peer.user.toLowerCase());
     peer.user = acc.user;
+    peer.resume = crypto.randomBytes(12).toString('hex');
     this.byUser.set(key, peer);
     this.log(`login     ${acc.user} (${peer.id} ${peer.addr})`);
-    this.send(peer, C.AUTH_OK, { user: acc.user, id: peer.id, transport: this.transport, wins: acc.wins, games: acc.games });
+    this.send(peer, C.AUTH_OK, { user: acc.user, id: peer.id, transport: this.transport, wins: acc.wins, games: acc.games, resume: peer.resume });
     this.send(peer, C.ROOM_LIST, this.roomList());
   }
 

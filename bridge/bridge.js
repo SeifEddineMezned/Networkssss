@@ -124,7 +124,8 @@ function connectLink() {
   });
   link.on('message', (m, reliable) => {
     if (m.t === C.AUTH_FAIL && creds) creds = null;
-    toBrowser({ t: m.t, d: m.d });
+    if (m.t === C.AUTH_OK && creds && m.d && m.d.resume) creds.resume = m.d.resume;   // private: lets a reconnect resume the session
+    toBrowser({ t: m.t, d: m.t === C.AUTH_OK ? Object.assign({}, m.d, { resume: undefined }) : m.d });
   });
   link.on('rtt', r => { lastRtt = r; });
   link.on('down', (reason, silence) => {

@@ -55,12 +55,19 @@ async function runFor(proto) {
     let pwErr = null; dup.o.pass = 'wrong'; try { await dup.auth(false); } catch (e) { pwErr = e.message; }
     check(proto, 'wrong password rejected', /Wrong password/.test(pwErr || ''), pwErr);
     dup.close();
-    // re-login with the right password works (same credentials)
+    // second login of an active user (correct password) is rejected
+    const second = mk('carol'); await second.connect();
+    let secErr = null; try { await second.auth(false); } catch (e) { secErr = e.message; }
+    check(proto, 'second login of an already logged-in user rejected', /already logged in/.test(secErr || ''), secErr);
+    second.close();
+    // ...but the same player's reconnecting client can resume with its private resume token
+    const okMsg = Cc.inbox.find(m => m.t === C.AUTH_OK);
     const relog = mk('carol'); await relog.connect();
     const replaced = Cc.waitFor(C.ERROR, d => d.code === 'replaced', T);
-    await relog.auth(false);
-    await replaced;
-    check(proto, 'login with same credentials; one active session per user (old one replaced)', true);
+    const rok = relog.waitFor(C.AUTH_OK, null, T);
+    relog.send(C.LOGIN, { user: 'carol', pass: 'pw-carol', resume: okMsg.d.resume });
+    await rok; await replaced;
+    check(proto, 'reconnect with resume token takes over the old session (one active session per user)', true);
     Cc.close();
     const C2 = relog; C2.name = 'carol';
 

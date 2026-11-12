@@ -17,7 +17,15 @@
     "bench:tcp": "node test/bench.js tcp",
     "bench:udp": "node test/bench.js udp",
     "bench": "node test/bench.js",
-    "netcheck": "node scripts/netcheck.js"
+    "netcheck": "node scripts/netcheck.js",
+    "verify:tcp": "node test/browser-verify.js tcp",
+    "verify:udp": "node test/browser-verify.js udp",
+    "drill:tcp": "node test/browser-verify.js tcp --drill",
+    "drill:udp": "node test/browser-verify.js udp --drill",
+    "soak:tcp": "node test/soak.js tcp 10",
+    "soak:udp": "node test/soak.js udp 10"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  }
 }

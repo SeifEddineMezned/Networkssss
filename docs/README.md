@@ -117,6 +117,10 @@ node test/run-all.js udp --sim-loss 0.1 --sim-delay 50     # same under 10% loss
 node test/fuzz.js        # malformed/oversized/split/forged/out-of-order input never crashes a server
 npm run bench            # TCP vs UDP under 3 network profiles -> docs/RESULTS.md
 node test/browser-smoke.js   # real headless Chrome/Edge: 2 players register, join, ready, play, drop
+npm run verify:tcp           # 3 real browser tabs + 3 bridges, full feature flow, screenshots -> logs/verify (also verify:udp)
+npm run drill:udp            # bad network on one bridge, frozen + killed bridge (also drill:tcp)
+npm run soak:tcp             # 10 min, 3 bots, memory / errors / desync (also soak:udp)
+# full results: docs/TEST_CHECKLIST.md
 node scripts/netcheck.js SERVER_IP    # reachability + RTT from this machine (run before the demo)
 node test/bot.js --proto udp --server IP:9001 --room ROOM1   # extra headless player for a room
 ```

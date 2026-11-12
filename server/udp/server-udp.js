@@ -70,7 +70,7 @@ function handshake(p, rinfo) {
       addr: `${rinfo.address}:${rinfo.port}`, pendingState: new Map() };
     peer.ep = new ReliableEndpoint({
       token: null, metrics,
-      sendDatagram: buf => { metrics.inc('bytesOut', buf.length); sim.send(() => sock.send(buf, peer.port, peer.address)); },
+      sendDatagram: buf => { sim.send(() => sock.send(buf, peer.port, peer.address)); },
       deliver: (msg, reliable) => session.handle(peer, msg, reliable),
       onFail: why => { session.log(`reliability gave up on ${peer.user || peer.id}: ${why}`); session.drop(peer, 'retransmitTimeout'); },
     });

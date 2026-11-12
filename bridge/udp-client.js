@@ -49,7 +49,7 @@ class UdpClient extends EventEmitter {
       this.lastRecv = Date.now();
       this.ep = new ReliableEndpoint({
         token: this.token, metrics: this.metrics,
-        sendDatagram: b => { if (this.metrics) this.metrics.inc('bytesOut', b.length); const sock = this.sock; this.sim.send(() => { if (sock && !this.closed) sock.send(b, this.port, this.host, () => { }); }); },
+        sendDatagram: b => { const sock = this.sock; this.sim.send(() => { if (sock && !this.closed) sock.send(b, this.port, this.host, () => { }); }); },
         deliver: (m, rel) => this._onMsg(m, rel),
         onFail: why => this._down('retransmitTimeout'),
       });

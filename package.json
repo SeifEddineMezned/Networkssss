@@ -1,0 +1,23 @@
+{
+  "name": "pvp-raw-sockets",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Computer Networks project: PvP arena in two versions, raw TCP and raw UDP (no dependencies).",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "server:tcp": "node server/tcp/server-tcp.js --port 9000",
+    "server:udp": "node server/udp/server-udp.js --port 9001",
+    "bridge:tcp": "node bridge/bridge.js --proto tcp",
+    "bridge:udp": "node bridge/bridge.js --proto udp",
+    "test": "node test/reliable.test.js && node test/run-all.js && node test/fuzz.js",
+    "test:e2e": "node test/run-all.js",
+    "test:fuzz": "node test/fuzz.js",
+    "test:reliable": "node test/reliable.test.js",
+    "test:browser": "node test/browser-smoke.js",
+    "bench:tcp": "node test/bench.js tcp",
+    "bench:udp": "node test/bench.js udp",
+    "bench": "node test/bench.js",
+    "netcheck": "node scripts/netcheck.js"
+  },
+  "engines": { "node": ">=18" }
+}

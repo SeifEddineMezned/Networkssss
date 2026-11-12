@@ -15,7 +15,7 @@ const argv = process.argv.slice(2);
 const arg = (k, def) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : def; };
 const PORT = +arg('--port', 9001);
 const HOST = arg('--host', '0.0.0.0');
-const HEARTBEAT_MS = 1000, TIMEOUT_MS = 5000, STATE_HZ = 30, MAX_PEERS = 64;
+const HEARTBEAT_MS = 1000, TIMEOUT_MS = 5000, STATE_HZ = 60, MAX_PEERS = 64;
 
 const metrics = new Metrics('server-udp');
 const sim = new SimNet(parseSimArgs(argv), 'datagram', metrics);
@@ -88,6 +88,10 @@ sock.on('message', (buf, rinfo) => {
     const raw = safeParse(buf.toString('utf8'));
     if (!raw || typeof raw !== 'object') { metrics.inc('badJson'); return; }
     if (raw.h === 'HELLO') return handshake(raw, rinfo);
+    if (raw.h === 'ECHO' && typeof raw.n === 'string' && raw.n.length < 40) {   // scripts/netcheck.js reachability probe
+      session.log(`netcheck UDP echo from ${rinfo.address}:${rinfo.port}`);
+      return rawSend({ h: 'ECHO', n: raw.n, you: `${rinfo.address}:${rinfo.port}` }, rinfo.port, rinfo.address);
+    }
     const peer = typeof raw.s === 'string' && (byToken.get(raw.s) || draining.get(raw.s));
     if (!peer) { metrics.inc('unknownToken'); return; }   // unknown/forged session token: ignore
     const p = parseDatagram(buf);

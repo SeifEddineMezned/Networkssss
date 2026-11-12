@@ -45,10 +45,18 @@ class SimNet {
       let tries = 0;
       while (Math.random() < o.loss && tries < 6) { d += o.rto * Math.pow(2, tries); tries++; }
       if (tries && this.metrics) this.metrics.inc('simTcpRetransmitDelays', tries);
-      const now = Date.now();
-      const at = Math.max(now + d, this.lastRelease.get(key) || 0);   // in-order: never overtake
-      this.lastRelease.set(key, at);
-      setTimeout(deliver, at - now);
+      // strict FIFO per connection: a delayed ("retransmitted") frame blocks every later frame
+      let q = this.lastRelease.get(key);
+      if (!q) { q = { items: [], timer: null }; this.lastRelease.set(key, q); }
+      const prevAt = q.items.length ? q.items[q.items.length - 1].at : 0;
+      q.items.push({ at: Math.max(Date.now() + d, prevAt), deliver });
+      const pump = () => {
+        q.timer = null;
+        const now = Date.now();
+        while (q.items.length && q.items[0].at <= now) q.items.shift().deliver();
+        if (q.items.length) q.timer = setTimeout(pump, q.items[0].at - now);
+      };
+      if (!q.timer) q.timer = setTimeout(pump, Math.max(0, q.items[0].at - Date.now()));
     }
   }
 }

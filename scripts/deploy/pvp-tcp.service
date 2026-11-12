@@ -1,0 +1,15 @@
+[Unit]
+Description=PvP arena - raw TCP game server (port 9000)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pvp
+WorkingDirectory=/opt/pvp
+ExecStart=/usr/bin/node server/tcp/server-tcp.js --port 9000 --host 0.0.0.0
+Restart=always
+RestartSec=2
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

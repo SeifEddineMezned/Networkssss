@@ -1,0 +1,15 @@
+[Unit]
+Description=PvP arena - raw UDP game server (port 9001)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pvp
+WorkingDirectory=/opt/pvp
+ExecStart=/usr/bin/node server/udp/server-udp.js --port 9001 --host 0.0.0.0
+Restart=always
+RestartSec=2
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

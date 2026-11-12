@@ -1005,6 +1005,9 @@ function Game() {
 					removeWeapon(player);
 				}
 
+				// [raw-sockets project] the victim's own client reports the death to the server scoreboard
+				if (netEnabled&&!nonet&&player.isLocal&&window.RAWLINK&&RAWLINK.netplay) RAWLINK.reportDeath(player.netId,fromplayer&&fromplayer.isHuman?fromplayer.netId:null,isFrag);
+
 				if (isFrag) {					
 					// Events happen on all clients
 					player.killedBy=fromplayer&&fromplayer.isHuman?fromplayer:0;
@@ -1227,6 +1230,7 @@ function Game() {
 	// Game flow
 	function endGame(nonet) {
 		if (netEnabled&&!nonet) NETPLAY.broadcastEvent([NETEVENT_ENDGAME]);
+		if (netEnabled&&!nonet&&window.RAWLINK&&RAWLINK.netplay&&gameModeData.gameRunning) RAWLINK.reportGameEnd(); // [raw-sockets project]
 		gameModeData.gameRunning=false;
 	}
 
@@ -2509,6 +2513,7 @@ function Game() {
 
 		// Netplay
 		if (netEnabled) {
+			gameModeData.netMaster=NETPLAY.isMaster; // [raw-sockets project] host hand-over after a disconnect
 			var events=NETPLAY.endFrame(players);
 			if (_DEBUG) _PACKETS=events?events.length:0;
 			if (events)

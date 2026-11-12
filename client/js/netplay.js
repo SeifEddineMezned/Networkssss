@@ -193,6 +193,8 @@ function Netplay(protocols,master) {
 						var playerdata=inPlayersData[player.id];						
 						if (!player.waitRespawn)
 							if (playerdata) {
+								// [raw-sockets project] desync metric: distance between predicted and received position
+								if (window.RAWLINK&&RAWLINK.netplay&&typeof playerdata[3]=="number") RAWLINK.noteCorrection(Math.hypot(player.sprite.x-playerdata[3],player.sprite.y-playerdata[4]));
 								predictorprepare(true,player);
 								PLAYER_SYNC.forEach((attr,pos)=>{
 									if ((playerdata[pos]!==undefined)&&!attr.aliveOnly||!player.isDead)

@@ -323,6 +323,9 @@ function GameState(master) {
 
 	this.resize=function() { doResize++; }
 
+	// [raw-sockets project] used by the lobby overlay to open the netplay room screen
+	this.goTo=function(state) { nextGameState=state; }
+
 	this.setFullScreen=function() {
 		DOM.setFullScreen(document.body);
 		CONTROLS.resetButtons();

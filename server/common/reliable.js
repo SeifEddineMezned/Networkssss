@@ -5,13 +5,14 @@
 //   c='R'  RELIABLE ORDERED   : retransmitted until acked, de-duplicated, delivered in order
 //   c='U'  UNRELIABLE SEQUENCED: never retransmitted, receiver drops anything older than newest seen
 //   c='A'  pure ACK (no payload)
-//   a/b    piggy-backed acks: a = highest reliable seq received, bit i of b = (a-1-i) received
+//   k      cumulative ack: every reliable seq <= k has been received (like TCP's ACK number)
+//   a/b    selective acks: a = highest reliable seq received, bit i of b = (a-1-i) received
 //
 // RTO follows RFC 6298 (SRTT/RTTVAR, Karn's rule: no samples from retransmitted packets),
 // exponential backoff per packet, peer declared dead after MAX_TRIES transmissions.
 const { MAX_PACKET } = require('./protocol');
 
-const INITIAL_RTO = 100, MIN_RTO = 60, MAX_RTO = 2000, MAX_TRIES = 8, MAX_OOO = 512;
+const INITIAL_RTO = 100, MIN_RTO = 60, MAX_RTO = 2000, MAX_BACKOFF = 1000, MAX_TRIES = 8, MAX_OOO = 512;
 
 class ReliableEndpoint {
   // opts: { sendDatagram(buf), deliver(msg, reliable), onFail(), metrics, token }
@@ -42,12 +43,12 @@ class ReliableEndpoint {
       if (s <= 0) break;
       if (s < this.expected || this.ooo.has(s)) bits |= (1 << i);
     }
-    return { a: this.maxRecv, b: bits >>> 0 };
+    return { k: this.expected - 1, a: this.maxRecv, b: bits >>> 0 };
   }
 
   _emit(pkt) {
     const f = this._ackFields();
-    pkt.a = f.a; pkt.b = f.b;
+    pkt.k = f.k; pkt.a = f.a; pkt.b = f.b;
     if (this.token) pkt.s = this.token;
     const buf = Buffer.from(JSON.stringify(pkt), 'utf8');
     if (buf.length > MAX_PACKET) this.m('oversizePackets');
@@ -79,9 +80,12 @@ class ReliableEndpoint {
     if (this.metrics) this.metrics.sample('transportRtt', r);
   }
 
-  _processAcks(a, b) {
-    if (typeof a !== 'number') return;
+  _processAcks(k, a, b) {
     const now = Date.now();
+    if (typeof k === 'number' && k > 0) for (const s of Array.from(this.unacked.keys())) if (s <= k) {
+      const e = this.unacked.get(s); if (e.tries === 1) this._rttSample(now - e.sentAt); this.unacked.delete(s);
+    }
+    if (typeof a !== 'number') return;
     const ackOne = (s) => {
       const e = this.unacked.get(s);
       if (!e) return;
@@ -96,7 +100,7 @@ class ReliableEndpoint {
   receive(pkt) {
     if (this.failed) return;
     this.m('pktsIn');
-    this._processAcks(pkt.a, pkt.b);
+    this._processAcks(pkt.k, pkt.a, pkt.b);
     if (pkt.c === 'A') return;
     if (typeof pkt.q !== 'number' || pkt.q < 1 || !Number.isSafeInteger(pkt.q)) { this.m('badSeq'); return; }
     if (pkt.c === 'U') {
@@ -132,7 +136,7 @@ class ReliableEndpoint {
     if (this.failed) return;
     const now = Date.now();
     for (const [q, e] of this.unacked) {
-      const timeout = Math.min(MAX_RTO * 4, this.rto * Math.pow(2, e.tries - 1));
+      const timeout = Math.min(Math.max(MAX_BACKOFF, this.rto), this.rto * Math.pow(2, e.tries - 1));
       if (now - e.sentAt >= timeout) {
         if (e.tries >= MAX_TRIES) {
           this.failed = true;

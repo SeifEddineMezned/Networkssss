@@ -23,7 +23,7 @@ exports.NetplayServer=function(config) {
 
 	if (!config) config={};
 	if (config.logLevel==undefined) config.logLevel=0; // Log level
-	if (config.roomTimeLimit==undefined) config.roomTimeLimit==1200000; // Autoclose rooms after 20 minutes of no join in/out
+	if (config.roomTimeLimit==undefined) config.roomTimeLimit=1200000; // Autoclose rooms after 20 minutes of no join in/out
 
 	var
 		rooms={},players={},netcodes=config.netcodes,bulkmode;
@@ -100,6 +100,13 @@ exports.NetplayServer=function(config) {
 				} else return "errorAlreadyFrozen";
 		   } else return "errorNoRoom";
 		} else return "errorNoPlayer";
+	}
+
+	// [raw-sockets project] allow a room to accept players again after a game ended
+	this.unfreezeRoom=function(roomId) {
+		var room=rooms[roomId];
+		if (room) { room.frozen=false; room.players.forEach(p=>{p.confirm=false;}); room.lastUpdate=Date.now(); return "ok"; }
+		return "errorNoRoom";
 	}
 
 	this.broadcastRoomConfiguration=function(roomId,except) {
@@ -236,7 +243,7 @@ exports.NetplayServer=function(config) {
 		var ts=Date.now();
 		for (var k in rooms) {
 			if (ts-rooms[k].lastUpdate>config.roomTimeLimit) {
-				serverLog(1,"<interval>",k,"Flusing for timeout: "+this.closeRoom(k));
+				this.log(1,"<interval>",k,"Flushing for timeout: "+this.closeRoom(k));
 			}
 		}
 	}
